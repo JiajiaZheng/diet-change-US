@@ -17,7 +17,7 @@ library(here)
 
 ```
 
-```{r databases, include=FALSE}
+```{r databases}
 # Importing data bases of emission factors for 2000 and 2007
 
 ef_2000 <- read_csv(here("Databases/Emission_factors_2000.csv"))
@@ -56,7 +56,7 @@ ef_2007 <- read_csv(here("Databases/emission_factors_2007.csv"))
 
 ```
 
-```{r data wrangling, include=FALSE}
+```{r data wrangling}
 # Adding combusted and noncombusted emissions for 2007
 
 ef_2007 <- ef_2007 %>% 
@@ -91,7 +91,7 @@ ef <- bind_rows(ef_2000, ef_2007)
 
 ### Changes in emissions per contaminant type and industry
 
-```{r Changes in emissions per contaminant type and industry, echo=FALSE}
+```{r Changes in emissions per contaminant type and industry}
 
 changes_emissions <- ef %>% 
   group_by(industry, type) %>% 
