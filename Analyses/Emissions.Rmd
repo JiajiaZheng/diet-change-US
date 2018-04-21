@@ -1,0 +1,106 @@
+---
+title: "Emissions Analysis"
+author: "Rahul, Jiajia and Ignacia"
+date: "April 21, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readr)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(here)
+
+```
+
+```{r databases, include=FALSE}
+# Importing data bases of emission factors for 2000 and 2007
+
+ef_2000 <- read_csv(here("Databases/Emission_factors_2000.csv"))
+  cols(
+    industry = col_character(),
+    co2 = col_double(),
+    ch4 = col_double(),
+    n2o = col_double(),
+    sox = col_double(),
+    nox = col_double(),
+    pm10 = col_double(),
+    pm2.5 = col_double()
+  )
+
+ef_2007 <- read_csv(here("Databases/emission_factors_2007.csv"))
+  cols(
+    Industry = col_character(),
+    co2_c = col_double(),
+    ch4_c = col_double(),
+    n2o_c = col_double(),
+    sox_c = col_double(),
+    nox_c = col_double(),
+    pm10_c = col_double(),
+    pm2.5_c = col_double(),
+    co2_nc = col_double(),
+    ch4_nc = col_double(),
+    n2o_nc = col_double(),
+    sox_nc = col_double(),
+    nox_nc = col_double(),
+    pm10_nc = col_double(),
+    pm2.5_nc = col_double(),
+    sf6 = col_double(),
+    hfc = col_double(),
+    pfc = col_double()
+  )
+
+```
+
+```{r data wrangling, include=FALSE}
+# Adding combusted and noncombusted emissions for 2007
+
+ef_2007 <- ef_2007 %>% 
+  mutate(co2 = co2_c + co2_nc, ch4 = ch4_c + ch4_nc, n2o = n2o_c + n2o_nc, sox = sox_c+sox_nc, nox= nox_c + nox_nc, pm10= pm10_c + pm10_nc, pm2.5= pm2.5_c + pm2.5_nc) %>% 
+  select(industry= Industry, co2, ch4, n2o, sox, nox, pm10, pm2.5)
+
+# List of industries that are in 2007 but not in 2000 (some of them are present in both but small changes in the wording made R to recognize them as different). Just to check if there are relevant industries related to food that differ between years.
+
+diff_industry <- data.frame(ef_2007$industry[!(ef_2007$industry %in% ef_2000$industry)])
+
+# Selecting food related industries based on list in the final power point
+
+ef_2000 <- ef_2000 %>% 
+  filter(industry %in% c("Cultivation of paddy rice", "Cultivation of wheat", "Cultivation of cereal grains nec", "Processed rice", "Cattle farming","Processing of meat cattle", "Pigs farming", "Processing of meat pigs", "Poultry farming",   "Processing of meat poultry", "Meat animals nec","Production of meat products nec", "Manufacture of fish products", "Processing of dairy products", "Raw milk", "Cultivation of vegetables, fruit, nuts", "Cultivation of sugar cane, sugar beet", "Sugar refining", "Cultivation of oil seeds", "Processing vegetable oils and fats"))
+
+ef_2007 <- ef_2007 %>% 
+  filter(industry %in% c("Cultivation of paddy rice", "Cultivation of wheat", "Cultivation of cereal grains nec", "Processed rice", "Cattle farming","Processing of meat cattle", "Pigs farming", "Processing of meat pigs", "Poultry farming",   "Processing of meat poultry", "Meat animals nec","Production of meat products nec", "Manufacture of fish products", "Processing of dairy products", "Raw milk", "Cultivation of vegetables, fruit, nuts", "Cultivation of sugar cane, sugar beet", "Sugar refining", "Cultivation of oil seeds", "Processing vegetable oils and fats"))
+
+# Transforming into tidy data (better for working in R)
+
+ef_2000 <- ef_2000 %>% 
+  gather(key = type, value = emissions, - industry) %>% 
+  mutate(year= 2000)
+
+ef_2007 <- ef_2007 %>% 
+  gather(key = type, value = emissions, - industry) %>% 
+  mutate(year= 2007)
+  
+ef <- bind_rows(ef_2000, ef_2007)
+
+```
+
+### Changes in emissions per contaminant type and industry
+
+```{r Changes in emissions per contaminant type and industry, echo=FALSE}
+
+changes_emissions <- ef %>% 
+  group_by(industry, type) %>% 
+  summarise(change = emissions[year==2007] - emissions[year==2000]) 
+
+ggplot(changes_emissions, aes(industry, change, fill = industry)) +
+  geom_bar(stat = "identity") +
+  theme(axis.ticks.x = element_blank(), axis.text.x = element_blank())+
+  facet_wrap(~ type, ncol = 2, scales = "free") 
+
+```
+
