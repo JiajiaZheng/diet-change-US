@@ -102,5 +102,23 @@ ggplot(changes_emissions, aes(industry, change, fill = industry)) +
   theme(axis.ticks.x = element_blank(), axis.text.x = element_blank())+
   facet_wrap(~ type, ncol = 2, scales = "free") 
 
+ggplot(filter(ef, year == 2000), aes(industry, emissions, fill = industry)) +
+  geom_bar(stat = "identity") +
+  theme(axis.ticks.x = element_blank(), axis.text.x = element_blank())+
+  facet_wrap(~ type, ncol = 2, scales = "free") 
+
+ggplot(filter(ef, year == 2007), aes(industry, emissions, fill = industry)) +
+  geom_bar(stat = "identity") +
+  theme(axis.ticks.x = element_blank(), axis.text.x = element_blank())+
+  facet_wrap(~ type, ncol = 2, scales = "free") 
+
+
+```
+
+```{r Creating new categories}
+
+ef <- ef %>% 
+  mutate(new_industry = ifelse(industry %in% c("Cultivation of paddy rice", "Cultivation of wheat", "Cultivation of cereal grains nec","Processed rice"), "cereal", ifelse( industry %in% c("Cattle farming","Processing of meat cattle"), "beef", ifelse(industry %in% c("Pigs farming", "Processing of meat pigs"), "pork", ifelse(industry %in% c("Poultry farming",   "Processing of meat poultry"), "poultry", ifelse(industry %in% c("Meat animals nec","Production of meat products nec"), "meat_other", ifelse(industry %in% c("Manufacture of fish products"), "fish", ifelse(industry %in% c("Processing of dairy products", "Raw milk"), "dairy", ifelse(industry %in% c("Cultivation of vegetables, fruit, nuts"), "vegs", ifelse(industry %in% c("Cultivation of sugar cane, sugar beet", "Sugar refining"), "sugar", ifelse(industry %in% c("Cultivation of oil seeds", "Processing vegetable oils and fats"), "oil", 0)))))))))))
+
 ```
 
