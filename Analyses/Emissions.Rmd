@@ -21,39 +21,8 @@ library(here)
 # Importing data bases of emission factors for 2000 and 2007
 
 ef_2000 <- read_csv(here("Databases/Emission_factors_2000.csv"))
-  cols(
-    industry = col_character(),
-    co2 = col_double(),
-    ch4 = col_double(),
-    n2o = col_double(),
-    sox = col_double(),
-    nox = col_double(),
-    pm10 = col_double(),
-    pm2.5 = col_double()
-  )
 
 ef_2007 <- read_csv(here("Databases/emission_factors_2007.csv"))
-  cols(
-    Industry = col_character(),
-    co2_c = col_double(),
-    ch4_c = col_double(),
-    n2o_c = col_double(),
-    sox_c = col_double(),
-    nox_c = col_double(),
-    pm10_c = col_double(),
-    pm2.5_c = col_double(),
-    co2_nc = col_double(),
-    ch4_nc = col_double(),
-    n2o_nc = col_double(),
-    sox_nc = col_double(),
-    nox_nc = col_double(),
-    pm10_nc = col_double(),
-    pm2.5_nc = col_double(),
-    sf6 = col_double(),
-    hfc = col_double(),
-    pfc = col_double()
-  )
-
 ```
 
 ```{r data wrangling}
@@ -78,18 +47,24 @@ ef_2007 <- ef_2007 %>%
 # Transforming into tidy data (better for working in R)
 
 ef_2000 <- ef_2000 %>% 
-  gather(key = type, value = emissions, - industry) %>% 
+  gather(key = pollutant, value = emission_factor, - industry) %>% 
   mutate(year= 2000)
 
 ef_2007 <- ef_2007 %>% 
-  gather(key = type, value = emissions, - industry) %>% 
+  gather(key = pollutant, value = emission_factor, - industry) %>% 
   mutate(year= 2007)
   
 ef <- bind_rows(ef_2000, ef_2007)
 
 ```
 
-### Changes in emissions per contaminant type and industry
+
+```{r Creating new categories}
+
+ef <- ef %>% 
+  mutate(new_industry = ifelse(industry %in% c("Cultivation of paddy rice", "Cultivation of wheat", "Cultivation of cereal grains nec","Processed rice"), "cereal", ifelse( industry %in% c("Cattle farming","Processing of meat cattle"), "beef", ifelse(industry %in% c("Pigs farming", "Processing of meat pigs"), "pork", ifelse(industry %in% c("Poultry farming",   "Processing of meat poultry"), "poultry", ifelse(industry %in% c("Meat animals nec","Production of meat products nec"), "meat_other", ifelse(industry %in% c("Manufacture of fish products"), "fish", ifelse(industry %in% c("Processing of dairy products", "Raw milk"), "dairy", ifelse(industry %in% c("Cultivation of vegetables, fruit, nuts"), "vegs", ifelse(industry %in% c("Cultivation of sugar cane, sugar beet", "Sugar refining"), "sugar", ifelse(industry %in% c("Cultivation of oil seeds", "Processing vegetable oils and fats"), "oil", ifelse(industry %in% c("Manufacture of beverages"), "beverages",0))))))))))))
+
+```
 
 ```{r Changes in emissions per contaminant type and industry}
 
@@ -115,10 +90,9 @@ ggplot(filter(ef, year == 2007), aes(industry, emissions, fill = industry)) +
 
 ```
 
-```{r Creating new categories}
+```{r Next week}
 
-ef <- ef %>% 
-  mutate(new_industry = ifelse(industry %in% c("Cultivation of paddy rice", "Cultivation of wheat", "Cultivation of cereal grains nec","Processed rice"), "cereal", ifelse( industry %in% c("Cattle farming","Processing of meat cattle"), "beef", ifelse(industry %in% c("Pigs farming", "Processing of meat pigs"), "pork", ifelse(industry %in% c("Poultry farming",   "Processing of meat poultry"), "poultry", ifelse(industry %in% c("Meat animals nec","Production of meat products nec"), "meat_other", ifelse(industry %in% c("Manufacture of fish products"), "fish", ifelse(industry %in% c("Processing of dairy products", "Raw milk"), "dairy", ifelse(industry %in% c("Cultivation of vegetables, fruit, nuts"), "vegs", ifelse(industry %in% c("Cultivation of sugar cane, sugar beet", "Sugar refining"), "sugar", ifelse(industry %in% c("Cultivation of oil seeds", "Processing vegetable oils and fats"), "oil", ifelse(industry %in% c("Manufacture of beverages"), "beverages",0))))))))))))
-
+# Weighting new industry emission factors based on final demand in EXIOBASE
+# Try to code from raw EXIOBASE to emission factors
 ```
 
