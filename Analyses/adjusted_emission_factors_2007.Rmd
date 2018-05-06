@@ -1,0 +1,79 @@
+---
+title: "2007 Emissions factors for air pollutants in the US"
+author: "Rahul, Jiajia and Ignacia"
+date: "April 21, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readr)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+library(here)
+
+```
+
+
+```{r databases}
+# Importing adjusted emissions factors for air pollutants in the US 2007. This database is a part of Emission_factors_2007_2000.xlsx also in the Databases folder. This last one was built by Jiajia after multiplying the 2000 and 2007 EXIOBASES by their respective Leontief inverse matrix in matlab and transposing them in excel.
+
+ef_air_us_2007 <- read_csv(here("Databases/emission_factors_us_air_2007.csv"))
+```
+
+```{r data wrangling}
+
+# Adding combusted and noncombusted emissions
+
+ef_air_us_2007 <- ef_air_us_2007 %>% 
+  mutate(co2 = co2_c + co2_nc, ch4 = ch4_c + ch4_nc, n2o = n2o_c + n2o_nc, sox = sox_c+sox_nc, nox= nox_c + nox_nc, pm10= pm10_c + pm10_nc, pm2.5= pm2.5_c + pm2.5_nc) %>% 
+  select(industry= Industry, co2, ch4, n2o, sox, nox, pm10, pm2.5, final_demand)
+
+# Selecting food related industries based on list in the final power point. There are also other food-related categories that we didn't include because they cannot be matched to CEX (Cultivation of plant-based fibers, Cultivation of crops nec, 	Animal products nec, 	Processing of Food products nec, 	Manufacture of tobacco products.)
+
+ef_air_us_2007 <- ef_air_us_2007 %>% 
+  filter(industry %in% c("Cultivation of paddy rice", "Cultivation of wheat", "Cultivation of cereal grains nec", "Processed rice", "Cattle farming","Processing of meat cattle", "Pigs farming", "Processing of meat pigs", "Poultry farming",   "Processing of meat poultry", "Meat animals nec","Production of meat products nec", "Manufacture of fish products", "Processing of dairy products", "Raw milk", "Cultivation of vegetables, fruit, nuts", "Cultivation of sugar cane, sugar beet", "Sugar refining", "Cultivation of oil seeds", "Processing vegetable oils and fats", "Manufacture of beverages", "Fishing, operating of fish hatcheries and fish farms; service activities incidental to fishing"))
+
+# Weighting based on final demand. We are assigning weight = 1 to those categories that are not related to others in terms of supply chain and those that are related, are given a weight depending on their final demands.
+
+ef_air_us_2007 <- ef_air_us_2007 %>% 
+  mutate(weight= ifelse(industry== "Cultivation of paddy rice", final_demand/(final_demand + final_demand[industry== "Processed rice"]), ifelse(industry == "Processed rice", final_demand/(final_demand + final_demand[industry== "Cultivation of paddy rice"]), ifelse(industry== "Cattle farming", final_demand/(final_demand + final_demand[industry== "Processing of meat cattle"]), ifelse(industry== "Processing of meat cattle", final_demand/(final_demand + final_demand[industry== "Cattle farming"]), ifelse(industry== "Pigs farming", final_demand/(final_demand + final_demand[industry== "Processing of meat pigs"]), ifelse(industry== "Processing of meat pigs", final_demand/(final_demand + final_demand[industry== "Pigs farming"]), ifelse(industry== "Poultry farming", final_demand/(final_demand + final_demand[industry== "Processing of meat poultry"]), ifelse(industry== "Processing of meat poultry", final_demand/(final_demand + final_demand[industry== "Poultry farming"]), ifelse(industry== "Processing of dairy products", final_demand/(final_demand + final_demand[industry== "Raw milk"]), ifelse(industry== "Raw milk", final_demand/(final_demand + final_demand[industry== "Processing of dairy products"]),ifelse(industry== "Fishing, operating of fish hatcheries and fish farms; service activities incidental to fishing", final_demand/(final_demand + final_demand[industry== "Manufacture of fish products"]), ifelse(industry== "Manufacture of fish products", final_demand/(final_demand + final_demand[industry== "Fishing, operating of fish hatcheries and fish farms; service activities incidental to fishing"]), ifelse(industry== "Processing vegetable oils and fats", final_demand/(final_demand + final_demand[industry== "Cultivation of oil seeds"]), ifelse(industry== "Cultivation of oil seeds", final_demand/(final_demand + final_demand[industry== "Processing vegetable oils and fats"]), ifelse(industry== "Cultivation of sugar cane, sugar beet", final_demand/(final_demand + final_demand[industry== "Sugar refining"]), ifelse(industry== "Sugar refining", final_demand/(final_demand + final_demand[industry== "Cultivation of sugar cane, sugar beet"]), ifelse(industry== "Production of meat products nec", final_demand/(final_demand + final_demand[industry== "Meat animals nec"]),ifelse(industry== "Meat animals nec" , final_demand/(final_demand + final_demand[industry== "Production of meat products nec"]), 1 )))))))))))))))))))
+
+# Weighting and transforming from tons per million euros to tons per million dolars
+
+ef_air_us_2007 <- ef_air_us_2007 %>% 
+  mutate(co2 = (co2*weight)/1.377, (ch4*weight)/1.377, (n2o*weight)/1.377, (sox*weight)/1.377, (nox*weight)/1.377, (pm10*weight)/1.377, (pm2.5*weight)/1.377) %>% 
+  select(industry, co2, ch4, n2o, sox, nox, pm10, pm2.5)
+
+# Transforming into tidy data (better for working in R)
+
+ef_air_us_2007 <- ef_air_us_2007 %>% 
+  gather(key = pollutant, value = emission_factor, - industry) 
+  
+```
+
+
+```{r Creating new categories}
+
+ef_air_us_2007 <- ef_air_us_2007 %>% 
+  mutate(new_industry = ifelse(industry %in% c("Cultivation of paddy rice", "Cultivation of wheat", "Cultivation of cereal grains nec","Processed rice"), "cereal", ifelse( industry %in% c("Cattle farming","Processing of meat cattle"), "beef", ifelse(industry %in% c("Pigs farming", "Processing of meat pigs"), "pork", ifelse(industry %in% c("Poultry farming",   "Processing of meat poultry"), "poultry", ifelse(industry %in% c("Meat animals nec","Production of meat products nec"), "meat_other", ifelse(industry %in% c("Manufacture of fish products", "Fishing, operating of fish hatcheries and fish farms; service activities incidental to fishing"), "fish", ifelse(industry %in% c("Processing of dairy products", "Raw milk"), "dairy", ifelse(industry %in% c("Cultivation of vegetables, fruit, nuts"), "vegs", ifelse(industry %in% c("Cultivation of sugar cane, sugar beet", "Sugar refining"), "sugar", ifelse(industry %in% c("Cultivation of oil seeds", "Processing vegetable oils and fats"), "oil", ifelse(industry %in% c("Manufacture of beverages"), "beverages",0)))))))))))) %>% 
+  group_by(new_industry, pollutant) %>% 
+  summarise(emission_factor = sum(emission_factor))
+
+
+```
+
+```{r Figure emission factor per industry per pollutant}
+
+ggplot(ef_air_us_2007, aes(new_industry, emission_factor, fill = new_industry)) +
+  geom_bar(stat = "identity") +
+  theme(axis.ticks.x = element_blank(), axis.text.x = element_blank())+
+  facet_wrap(~ pollutant, ncol = 2, scales = "free") 
+
+```
+
+
